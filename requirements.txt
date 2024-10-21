@@ -1,0 +1,9 @@
+numpy==1.26.4
+opencv-python==4.8.0.76
+opencv-contrib-python==4.9.0.80
+mediapipe==0.10.14
+matplotlib==3.8.4
+imagezmq~=1.2.0
+PyQt5~=5.15.11
+playsound~=1.2.2
+gTTS~=2.5.3
