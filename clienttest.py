@@ -3,22 +3,23 @@ import cv2
 import mediapipe as mp
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+import zmq
 
-from originalscripts.g_helper import mirrorImage
-from FaceMeshDetector import pipelineHeadTiltPose
+from FaceMeshDetector import pipelineHeadTiltPose, mirrorImage
 import socket
 import imagezmq
 
 # Initialize Face Mesh #########################
+print("Initializing Face Mesh...")
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_face_mesh = mp.solutions.face_mesh
 ################################################
 
 # Initialize Camera #########################
+print("Initializing Camera....")
 cap = cv2.VideoCapture(0)
 
-cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
 width = 1280
 height = 720
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -26,9 +27,14 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 ##############################################
 
 # SERVER CONNECT #########################
-sender = imagezmq.ImageSender(connect_to='tcp://localhost:5555')
+print("Connecting to server....")
+sender = imagezmq.ImageSender(connect_to='tcp://10.38.10.137:5555')
+context = zmq.Context()
+textSender = context.socket(zmq.REQ)
+textSender.connect("tcp://localhost:5556")
 hostname = socket.gethostname()
 ##########################################
+
 
 class Ui_MainWindow(object):
 
@@ -86,10 +92,13 @@ class Ui_MainWindow(object):
         elif warningState == 0 and self.WARNING_STATE != warningState:
             self.WARNING_STATE = 0
 
-    def closeEvent(self, event):
-        print("Close clicked")
-        sender.close()
-        event.accept()
+
+def compress_image(img, quality=90):
+    # Encode the image with JPEG compression
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+    result, encimg = cv2.imencode('.jpg', img, encode_param)
+
+    return encimg
 
 class Worker1(QThread):
     AIUpdate = pyqtSignal(QImage, int)
@@ -121,7 +130,9 @@ class Worker1(QThread):
                             # HEAD TILT POSE -----------------------------------
                             head_tilt_pose = pipelineHeadTiltPose(image, face_landmarks)
 
-                    sender.send_image(hostname, image)  # Send Image to server
+                    compressed_img = compress_image(image, 50)
+
+                    sender.send_image(hostname, compressed_img)  # Send Image to server
                     convert_to_qt = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_BGR888)
                     pic = convert_to_qt.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
                     self.AIUpdate.emit(pic, head_tilt_pose)

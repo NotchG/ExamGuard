@@ -1,12 +1,14 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-from gtts import gTTS
-import playsound
-import os
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_face_mesh = mp.solutions.face_mesh
+
+
+def mirrorImage(image):
+    image = cv2.flip(image, 1)
+    return image
 
 def getCoordinates_fp(face_landmarks, img_h, img_w):
     face_3d = []
@@ -24,6 +26,7 @@ def getCoordinates_fp(face_landmarks, img_h, img_w):
     # Convert it to the NumPy array
     face_3d = np.array(face_3d, dtype=np.float64)
     return face_2d, face_3d, nose_2d, nose_3d
+
 
 def projectCameraAngle_fp(face_2d, face_3d, img_h, img_w):
     # The camera matrix
@@ -44,6 +47,7 @@ def projectCameraAngle_fp(face_2d, face_3d, img_h, img_w):
     y = angles[1] * 360
     z = angles[2] * 360
     return x, y, z, rot_vec, trans_vec, cam_matrix, dist_matrix
+
 
 def getHeadTilt_fp(x, y, z):
     if y < -5:
